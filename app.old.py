@@ -79,37 +79,6 @@ def generate_results_with_teams(league_id, week):
     
     return results
 
-# Function to generate matchups without points but with players
-def generate_matchups_with_players(league_id, week):
-    rosters = get_rosters(league_id)
-    users = get_users(league_id)
-    roster_to_team_name = get_team_name_by_roster_id(rosters, users)
-    matchups = get_weekly_matchups(league_id, week)
-    organized_matchups = {}
-
-    for team in matchups:
-        matchup_id = team['matchup_id']
-        if matchup_id not in organized_matchups:
-            organized_matchups[matchup_id] = []
-        organized_matchups[matchup_id].append({
-            'team_name': roster_to_team_name.get(team['roster_id'], 'Unknown Team'),
-            'players': team['starters']  # Store player IDs for this team
-        })
-
-    results = []
-    for matchup_id, teams in organized_matchups.items():
-        if len(teams) == 2:
-            team1, team2 = teams
-            # Map player IDs to player names for both teams
-            key_players = map_player_ids(team1['players'] + team2['players'])
-            team1_player_names = [key_players[player_id] for player_id in team1['players']]
-            team2_player_names = [key_players[player_id] for player_id in team2['players']]
-
-            # Prepare matchup result without points, but with players
-            results.append(f"{team1['team_name']} vs {team2['team_name']} - Players: {', '.join(team1_player_names)} vs {', '.join(team2_player_names)}")
-
-    return results
-
 # Endpoint to trigger the function
 @app.route('/generate_results', methods=['POST'])
 def generate_results():
@@ -121,19 +90,6 @@ def generate_results():
         return jsonify({"error": "Invalid input. 'league_id' and 'week' are required."}), 400
 
     results = generate_results_with_teams(league_id, week)
-    return jsonify(results)
-
-# New route for league matchups without points but with players
-@app.route('/get_league_matchups', methods=['POST'])
-def get_league_matchups():
-    data = request.json
-    league_id = data.get('league_id')
-    week = data.get('week')
-
-    if not league_id or not week:
-        return jsonify({"error": "Invalid input. 'league_id' and 'week' are required."}), 400
-
-    results = generate_matchups_with_players(league_id, week)
     return jsonify(results)
 
 if __name__ == '__main__':
